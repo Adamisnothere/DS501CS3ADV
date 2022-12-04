@@ -6,6 +6,7 @@ library(stringr)
 library(ggplot2)
 library(caret)
 library(lattice)
+# Algorithm Assistance from: https://rpubs.com/shihui17170153/abalone
 
 # Retrieve the data from UCI Archive on Abalone
 abalone <- 'https://archive.ics.uci.edu/ml/machine-learning-databases/abalone/abalone.data'
@@ -55,46 +56,32 @@ dataAbaloneC$Sex <- ordered(dataAbaloneC$Sex,
                             labels = c("Infant", "Adult"))
 
 # Split into training and testing data
-# trainingIndex <- createDataPartition(dataAbaloneC$Sex, p = 0.8, list = F)
-# trainingSet <- dataAbaloneC[trainingIndex,]
-# testingSet <- dataAbaloneC[-trainingIndex,]
-
-# Build Model
+trainingIndex <- createDataPartition(dataAbaloneC$Sex, p = 0.8, list = F)
+trainingSet <- dataAbaloneC[trainingIndex,]
+testingSet <- dataAbaloneC[-trainingIndex,]
+#
+# # # Build Model
 # fitControl <- trainControl(method = "repeatedcv",
-#                            number = 10,
-#                            repeats = 10)
-set.seed(777)
-
-# Support Vector Machine
+#                            number = 5,
+#                            repeats = 5)
+# 
+# #Support Vector Machine
 # SVM = train(Sex ~ .,
 #             data= trainingSet,
-#             method = "svmPoly",
-#             preProcess = c("scale", "center"),
+#             method = "svmLinear",
+#             preProcess = c("center","scale"),
 #             trControl = fitControl,
-#             tuneGrid = data.frame(degree=1,scale=1,C=1))
-# 
-# # Naive Bayes
-# NB = train(Sex ~ .,
-#            data = trainingSet,
-#            method = "nb",
-#            trControl = fitControl)
-# 
-# # KNN
-# KNN = train(Sex ~ .,
-#             data = trainingSet,
-#             method = "knn",
-#             preProcess = c("center", "scale"),
-#             tuneLength = 10,
-#             trControl = fitControl)
-# # Predict
+#             tuneGrid = expand.grid(C = seq(0, 2, length = 20))
+#             )
+# # 
+# # 
+# # # # Predict
 # SVM_Prediction = predict(SVM, newdata = testingSet)
-# NB_Prediction = predict(NB, newdata = testingSet)
-# KNN_Prediction = predict(KNN, newdata = testingSet)
-# 
-# # Model Eval
+# # 
+# # # 
+# # # # Model Eval
 # SVM_Eval = confusionMatrix(SVM_Prediction, testingSet$Sex)
-# NB_Eval = confusionMatrix(NB_Prediction, testingSet$Sex)
-# KNN_Eval = confusionMatrix(KNN_Prediction, testingSet$Sex)
+
 
 server <- function(input, output) {
   
@@ -122,31 +109,32 @@ server <- function(input, output) {
   # ScatterPlots based on input$radioSex1
   output$ScatterPlotWeightShucked <- renderPlot({
     if(input$radioSex1 == "All"){
-      qplot(data=dataAbalone, x=Whole, y=Shucked, color= Sex, xlim=c(0,3.5), ylim=c(0,1.5), main = "All Sexes Whole Vs Shucked Weight")
+      qplot(data=dataAbalone, x=Whole, y=Shucked, geom=c("point", "smooth"), color= Sex, xlim=c(0,3.5), ylim=c(0,1.5), main = "All Sexes Whole Vs Shucked Weight")
     }else{
-      qplot(data= subset(dataAbalone, Sex==input$radioSex1), x=Whole, y=Shucked, xlim=c(0,3.5), ylim=c(0,1.5), main = paste(input$radioSex1, " Sex Whole Vs Shucked Weight", sep=""))
+      qplot(data= subset(dataAbalone, Sex==input$radioSex1), x=Whole, y=Shucked,geom=c("point", "smooth"), xlim=c(0,3.5), ylim=c(0,1.5), main = paste(input$radioSex1, " Sex Whole Vs Shucked Weight", sep=""))
     }
   })
   
   output$ScatterPlotWeightViscera <- renderPlot({
     if(input$radioSex1 == "All"){
-      qplot(data=dataAbalone, x=Whole, y=Viscera, color= Sex, xlim=c(0,3), ylim=c(0,0.8), main = "All Sexes Whole Vs Viscera Weight")
+      qplot(data=dataAbalone, x=Whole, y=Viscera,geom=c("point", "smooth"), color= Sex, xlim=c(0,3), ylim=c(0,0.8), main = "All Sexes Whole Vs Viscera Weight")
     }else{
-      qplot(data= subset(dataAbalone, Sex==input$radioSex1), x=Whole, y=Viscera, xlim=c(0,3), ylim=c(0,0.8), main = paste(input$radioSex1, " Sex Whole Vs Viscera Weight", sep=""))
+      qplot(data= subset(dataAbalone, Sex==input$radioSex1),  x=Whole, y=Viscera,geom=c("point", "smooth"), xlim=c(0,3), ylim=c(0,0.8), main = paste(input$radioSex1, " Sex Whole Vs Viscera Weight", sep=""))
     }
   })
     
   output$ScatterPlotWeightShell <- renderPlot({
     if(input$radioSex1 == "All"){
-      qplot(data=dataAbalone, x=Whole, y=Shell, color= Sex, xlim=c(0,3), ylim=c(0,1.1), main = "All Sexes Whole Vs Shell Weight")
+      qplot(data=dataAbalone, x=Whole, y=Shell, color= Sex,geom=c("point", "smooth"), xlim=c(0,3), ylim=c(0,1.1), main = "All Sexes Whole Vs Shell Weight")
     }else{
-      qplot(data= subset(dataAbalone, Sex==input$radioSex1), x=Whole, y=Shell, xlim=c(0,3), ylim=c(0,1.1), main = paste(input$radioSex1, " Sex Whole Vs Shell Weight", sep=""))
+      qplot(data= subset(dataAbalone, Sex==input$radioSex1), geom=c("point", "smooth"), x=Whole, y=Shell, xlim=c(0,3), ylim=c(0,1.1), main = paste(input$radioSex1, " Sex Whole Vs Shell Weight", sep=""))
     }
   })
   
   # Machine Learning Classification
   trainingTestSet = reactive({
     createDataPartition(dataAbaloneC$Sex, p = input$trainingSlider1/100, list = F)
+    
   })
   
   
@@ -155,34 +143,81 @@ server <- function(input, output) {
     trainControl(method = "repeatedcv",
                  number = input$fitNumber,
                  repeats = input$fitRepeat)
+    
   })
   
   
   # reactive for SVM train and prediction
   Model = reactive({
-    if(input$selectMLMethod == 1){
       train(Sex ~ .,
             data= dataAbaloneC[trainingTestSet(),],
-            method = "svmPoly",
-            preProcess = c("scale", "center"),
+            method = "svmLinear",
+            preProcess = c("center","scale"),
             trControl = fitControl(),
-            tuneGrid = data.frame(degree=1,scale=1,C=1))
-    }else if(input$selectMLMethod == 2){
-      
-    }else if(input$selectMLMethod == 3){
-      
-    }
+            tuneGrid = expand.grid(C = seq(0, input$upperCBound, length = 20)))
   })
+  
+  Prediction <- reactive({
+    SVM_Prediction = predict(Model(), newdata = dataAbaloneC[-trainingTestSet(),])
+  })
+  
   
   output$modelEvalText = renderText({
     input$submitModel
-    testingSet <- dataAbaloneC[-trainingTestSet(),]
-    SVM_Prediction = predict(Model(), newdata = testingSet)
-    SVM_Eval = confusionMatrix(SVM_Prediction, testingSet$Sex)
-    paste(SVM_Eval[1:3])
+    isolate({
+      testingSet <- dataAbaloneC[-trainingTestSet(),]
+      SVM_Eval = confusionMatrix(Prediction(), testingSet$Sex)
+      paste("Predictions (Infants, Adults): \n", "    Infant: ",SVM_Eval[[2]][1], SVM_Eval[[2]][2], "\n", "    Adult:  ", SVM_Eval[[2]][3], SVM_Eval[[2]][4], "\n", "Statistics:\n",
+            "Accuracy: ", SVM_Eval[[3]][1], "\n",
+            "Kappa: ", SVM_Eval[[3]][2], "\n",
+            "Accuracy Lower: ", SVM_Eval[[3]][3], "\n",
+            "Accuracy Upper: ", SVM_Eval[[3]][4], "\n",
+            "Accuracy P Value: ", SVM_Eval[[3]][6], "\n",
+            "Mcnemar P Value: ", SVM_Eval[[3]][7], "\n\n",
+            "Sensitivity: ", SVM_Eval[[4]][1], "\n",
+            "Specificity: ", SVM_Eval[[4]][2], "\n",
+            "Pos Pred Value: ", SVM_Eval[[4]][3], "\n",
+            "Neg Pred Value: ", SVM_Eval[[4]][4], "\n",
+            "Precision: ", SVM_Eval[[4]][5], "\n",
+            "Recall: ", SVM_Eval[[4]][6], "\n",
+            "P1: ", SVM_Eval[[4]][7], "\n",
+            "Prevalence: ", SVM_Eval[[4]][8], "\n",
+            "Detection Rate: ", SVM_Eval[[4]][9], "\n",
+            "Balanced Accuracy: ", SVM_Eval[[4]][10], "\n",
+            "Positive Class: ", SVM_Eval[[1]])
+    })
   })
   
+  output$modelCostPlot = renderPlot({
+    input$submitModel
+    isolate({plot(Model())})
+  })
+  
+  
+  output$histogramsattr = renderPlot({
+    par(mfrow=c(3,3))
+    Length<-dataAbalone$Length; hist(Length, col="blue")
+    Diameter<-dataAbalone$Diameter; hist(Diameter, col="blue")
+    Height<-dataAbalone$Height; hist(Height, col="blue")
+    Whole<-dataAbalone$Whole; hist(Whole, col="red")
+    Shucked<-dataAbalone$Shucked; hist(Shucked, col="red")
+    Viscera<-dataAbalone$Viscera; hist(Viscera, col="red")
+    Shell<-dataAbalone$Shell; hist(Shell, col="red")
+    Rings<-dataAbalone$Rings; hist(Rings, col="green")
+  })
+  
+  output$barGSex = renderPlot({
+    ggplot(data=dataAbalone,aes(x=Sex,fill=Sex)) + geom_bar()
+  })
+  
+  
+  output$barSexvsWhole = renderPlot({
+    qplot(Sex, Whole, data = dataAbalone, geom = "boxplot", fill = Sex)
+  })
+  
+  output$vioSexvsWhole = renderPlot({
+    qplot(Sex, Whole, data = dataAbalone, geom = "violin", fill = Sex)
+  })
+  
+  
 }
-
-
-
